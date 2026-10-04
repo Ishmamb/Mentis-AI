@@ -1,0 +1,21 @@
+{
+  "name": "mentis-ai-faculty-release",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:mobile": "npm --workspace apps/mobile run start",
+    "build:api": "npm --workspace apps/api run build",
+    "db:generate": "npm --workspace apps/api run prisma:generate",
+    "db:migrate": "npm --workspace apps/api run prisma:migrate",
+    "db:seed": "npm --workspace apps/api run prisma:seed",
+    "db:studio": "npm --workspace apps/api run prisma:studio",
+    "typecheck": "npm --workspace apps/api run typecheck && npm --workspace apps/mobile run typecheck",
+    "db:push": "npm --workspace apps/api run prisma:push"
+  }
+}
