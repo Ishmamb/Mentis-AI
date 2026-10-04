@@ -1,0 +1,327 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FocusStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ContentTier {
+  FREE
+  PREMIUM
+}
+
+enum ChallengeStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+}
+
+model User {
+  id               String                 @id @default(cuid())
+  email            String                 @unique
+  passwordHash     String
+  displayName      String
+  username         String                 @unique
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  refreshTokens    RefreshToken[]
+  onboarding       OnboardingProfile?
+  assessments      AssessmentResult[]
+  starterPlans     StarterPlan[]
+  focusSessions    FocusSession[]
+  moodEntries      MoodEntry[]
+  goals            Goal[]
+  gameSessions     GameSession[]
+  dailyInsights    DailyInsight[]
+  offlineDownloads OfflineDownload[]
+  audioFavorites   AudioFavorite[]
+  xpEvents         XPEvent[]
+  activityEvents   ActivityEvent[]
+  challengeEntries ChallengeParticipant[]
+  collectibles     UserCollectible[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OnboardingProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  goals      String[]
+  screenTime String
+  apps       String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AssessmentResult {
+  id              String   @id @default(cuid())
+  userId          String
+  correctAnswers  Int
+  focusIndex      Int
+  cognitiveAge    Int?
+  disclaimerShown Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model StarterPlan {
+  id                String   @id @default(cuid())
+  userId            String
+  dailyFocusMinutes Int
+  dailyChallenges   Int
+  blockedApp        String
+  blockedAfter      String
+  reason            String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model FocusSession {
+  id              String      @id @default(cuid())
+  userId          String
+  plannedMinutes  Int
+  completedMinutes Int         @default(0)
+  status          FocusStatus @default(ACTIVE)
+  startedAt       DateTime    @default(now())
+  endedAt         DateTime?
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+model MoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  mood      Int
+  focus     Int?
+  energy    Int?
+  stress    Int?
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Goal {
+  id        String     @id @default(cuid())
+  userId    String
+  title     String
+  category  String
+  target    Int
+  unit      String
+  frequency String?
+  deadline  DateTime?
+  status    GoalStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs      GoalLog[]
+
+  @@index([userId, status])
+}
+
+model GoalLog {
+  id        String   @id @default(cuid())
+  goalId    String
+  value     Int
+  note      String?
+  createdAt DateTime @default(now())
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, createdAt])
+}
+
+model Game {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String
+  difficulty  String
+  estimatedMinutes Int
+  tier        ContentTier   @default(FREE)
+  xpReward    Int           @default(20)
+  active      Boolean       @default(true)
+  sessions    GameSession[]
+}
+
+model GameSession {
+  id          String   @id @default(cuid())
+  userId      String
+  gameId      String
+  score       Int
+  durationSec Int
+  completed   Boolean  @default(true)
+  xpEarned    Int
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model DailyInsight {
+  id        String   @id @default(cuid())
+  userId    String
+  dateKey   String
+  category  String
+  title     String
+  summary   String
+  body      String
+  action    String
+  source    String   @default("RULES")
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+}
+
+model OfflinePack {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  title            String
+  description      String
+  difficulty       String
+  playersMin       Int
+  playersMax       Int
+  estimatedMinutes Int
+  pageCount        Int
+  tier             ContentTier   @default(FREE)
+  pdfUrl           String
+  xpReward         Int           @default(15)
+  downloads        OfflineDownload[]
+}
+
+model OfflineDownload {
+  id        String      @id @default(cuid())
+  userId    String
+  packId    String
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pack      OfflinePack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model AudioTrack {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  title     String
+  category  String
+  durationSec Int
+  audioUrl  String
+  tier      ContentTier   @default(FREE)
+  favorites AudioFavorite[]
+}
+
+model AudioFavorite {
+  id        String     @id @default(cuid())
+  userId    String
+  trackId   String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     AudioTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+}
+
+model XPEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  points    Int
+  refId     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Challenge {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  title       String
+  description String
+  targetType  String
+  targetValue Int
+  xpReward    Int
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ChallengeStatus     @default(ACTIVE)
+  participants ChallengeParticipant[]
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(cuid())
+  userId      String
+  challengeId String
+  progress    Int       @default(0)
+  completedAt DateTime?
+  joinedAt    DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+}
+
+model Collectible {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  title       String
+  type        String
+  rarity      String
+  description String
+  unlockXp    Int
+  userLinks   UserCollectible[]
+}
+
+model UserCollectible {
+  id            String      @id @default(cuid())
+  userId        String
+  collectibleId String
+  unlockedAt    DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectible   Collectible @relation(fields: [collectibleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collectibleId])
+}

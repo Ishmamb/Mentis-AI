@@ -1,24 +1,21 @@
 {
-  "name": "mentis-ai",
+  "name": "mentis-ai-faculty-release",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js",
+  "workspaces": [
+    "apps/api",
+    "apps/mobile"
+  ],
   "scripts": {
-    "start": "expo start --clear",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
-    "doctor": "npx expo-doctor@latest"
-  },
-  "dependencies": {
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~57.0.1",
-    "expo-haptics": "~57.0.2",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.0"
-  },
-  "devDependencies": {
-    "@types/react": "~19.2.2",
-    "typescript": "~5.9.2"
+    "install:all": "npm install",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:mobile": "npm --workspace apps/mobile run start",
+    "build:api": "npm --workspace apps/api run build",
+    "db:generate": "npm --workspace apps/api run prisma:generate",
+    "db:migrate": "npm --workspace apps/api run prisma:migrate",
+    "db:seed": "npm --workspace apps/api run prisma:seed",
+    "db:studio": "npm --workspace apps/api run prisma:studio",
+    "typecheck": "npm --workspace apps/api run typecheck && npm --workspace apps/mobile run typecheck",
+    "db:push": "npm --workspace apps/api run prisma:push"
   }
 }

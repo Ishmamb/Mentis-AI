@@ -1,104 +1,255 @@
-# MENTIS AI — RUN THIS FIRST
+# Mentis AI - Faculty Release v1
 
-This version was rebuilt cleanly for **Expo SDK 57 / Expo Go**.
+This repository upgrades the earlier Expo prototype into a real full-stack application:
 
-## Easiest method on Windows
+- React Native + TypeScript + Expo 57 mobile frontend
+- NestJS REST API
+- PostgreSQL
+- Prisma ORM
+- JWT access + refresh authentication
+- Persistent onboarding, focus sessions, goals, mood, games, XP, community and AI insights
+- Swagger API documentation
+- Seeded faculty demo account/data
+- Optional OpenAI daily insight / weekly reflection with deterministic fallback
 
-### First time only
-1. Extract the ZIP.
-2. Open the extracted folder.
-3. Double-click **START_MENTIS.bat**.
-4. Wait while `npm install` finishes.
-5. A QR code will appear.
-6. Make sure the iPhone and laptop are on the same Wi‑Fi.
-7. Open the iPhone Camera, scan the QR, and open it in **Expo Go**.
+The existing Mentis visual direction is preserved: off-white background, navy/ink typography, indigo primary actions, rounded cards and restrained color.
 
-### Every time after that
-Just double-click **START_MENTIS.bat** again.
+## Fastest Windows demo setup
 
----
+Prerequisites:
 
-## Manual terminal method
+1. Node.js 22+
+2. Docker Desktop
+3. Expo Go on your phone OR Android Studio emulator
 
-Open PowerShell in this folder and run:
+Then:
 
-```powershell
-npm install
-npx expo start --clear
+1. Extract the project to a simple path such as `E:\MentisAI`.
+2. Double-click `SETUP_DEMO.bat`.
+3. Wait for PostgreSQL, npm packages, Prisma schema and seed data to finish.
+4. Open one terminal and run `START_BACKEND.bat`.
+5. Open a second terminal and run `START_MOBILE.bat`.
+
+### Demo login
+
+- Email: `demo@mentis.app`
+- Password: `Mentis123!`
+
+The seeded account already contains focus history, mood data, a personal goal, game history, XP, leaderboards, challenges and collectibles.
+
+## Android emulator
+
+The included mobile `.env.demo` uses:
+
+`EXPO_PUBLIC_API_URL=http://10.0.2.2:4000/api`
+
+That is correct for the standard Android emulator.
+
+## Physical Android phone
+
+Your phone cannot use `10.0.2.2` or `localhost` to reach the PC. Put both devices on the same Wi-Fi, find the PC IPv4 address with:
+
+`ipconfig`
+
+Then edit `apps/mobile/.env` to something like:
+
+`EXPO_PUBLIC_API_URL=http://192.168.0.105:4000/api`
+
+Restart Expo after changing the file.
+
+If Windows Firewall asks about Node, allow Private Networks.
+
+## API URLs
+
+When backend is running:
+
+- Health: `http://localhost:4000/api/health`
+- Swagger: `http://localhost:4000/api/docs`
+- Static demo assets: `http://localhost:4000/assets/...`
+
+## What is genuinely implemented
+
+### Authentication
+
+- register
+- login
+- JWT access token
+- refresh token rotation
+- logout
+- persistent mobile session
+
+### Onboarding
+
+- goals
+- screen-time range
+- distracting apps
+- three-step cognitive/focus baseline
+- server-saved assessment
+- backend-generated starter plan
+
+### Home
+
+- real dashboard endpoint
+- focus index
+- XP and level
+- active personal goal
+- weekly focus summary
+- persisted Daily Insight
+
+### Mentis AI
+
+`apps/api/src/ai/ai.service.ts` has two modes.
+
+With `OPENAI_API_KEY` empty, Mentis uses deterministic, evidence-based fallback suggestions so the faculty demo never depends on internet/API availability.
+
+If you add an OpenAI API key to `apps/api/.env`, the backend calls the Responses API and still falls back safely if the request fails.
+
+AI is server-side; the mobile app never receives the provider API key.
+
+### Detox / Focus
+
+- start focus session
+- active database state
+- complete or abandon session
+- focus history
+- XP reward on completion
+- activity event logging
+
+True Android OS-level app restriction is intentionally isolated from the main demo and is not required for the rest of the product to work.
+
+### Train
+
+- backend game catalog
+- playable Pattern Lab demo
+- persisted game score
+- XP rewards
+- Sudoku/Mystery catalog records
+- Offline Play PDF catalog
+- real locally served printable PDF files
+- Focus & Calm audio catalog
+- locally served demo WAV audio assets
+
+### Reflect / Progress
+
+- mood check-ins
+- seven-day mood visualization
+- personal goals
+- goal progress logs
+- goal completion logic
+- weekly AI reflection
+
+All wellness data is treated as non-clinical self-reflection.
+
+### Community / Loyalty
+
+- XP event model
+- four levels: Starter, Focused, Disciplined, Ascendant
+- weekly leaderboard
+- community challenges
+- join challenge
+- unlockable collectibles
+- native share sheet for progress sharing
+
+## Database reset before faculty demo
+
+From project root:
+
+```bash
+npm run db:push
+npm run db:seed
 ```
 
-Then scan the QR with your iPhone.
+`db:seed` intentionally resets the faculty data set so the app returns to a predictable demonstration state.
 
-## Requirements
-- Node.js 22.13+ (your Node 22.20 is fine)
-- Latest Expo Go on iPhone
-- Laptop + iPhone on the same Wi‑Fi
+## OpenAI configuration - optional
 
-## If the phone cannot connect
+Edit `apps/api/.env`:
+
+```env
+OPENAI_API_KEY="your-key"
+OPENAI_MODEL="gpt-6-luna"
+```
+
+If you do not set a key, everything still works. The UI labels the insight as a safe fallback instead of pretending an external AI call occurred.
+
+## Architecture
+
+```text
+React Native / Expo
+        |
+        | REST + JWT
+        v
+NestJS modular API
+        |
+        +---- Auth / Onboarding / Dashboard
+        +---- Focus / Wellness / Content
+        +---- Community / Rewards / AI
+        |
+        +----> PostgreSQL via Prisma
+        |
+        +----> Optional OpenAI Responses API
+        |
+        +----> Static PDF / audio demo assets
+```
+
+See `docs/architecture.md` and `docs/database.md` for the detailed explanation you can use in viva.
+
+## Important demo sequence
+
+1. Start backend and open Swagger once.
+2. Start Expo app.
+3. Use the seeded demo login if time is short.
+4. Show Home and the Daily Insight.
+5. Start the 1-minute faculty focus demo and complete it immediately.
+6. Refresh Home and show XP/focus data updated.
+7. Open Train and solve Pattern Lab correctly (`32`).
+8. Open one Offline Play PDF.
+9. Open Focus & Calm audio.
+10. Open Progress and submit a mood check-in.
+11. Add +1 to the reading goal.
+12. Show weekly Mentis reflection.
+13. Open Profile: leaderboard, level, collectibles and challenges.
+14. Use Share Progress.
+15. Return to Swagger and show that the data is coming from a real API.
+
+## Troubleshooting
+
+### `Network request failed` on phone
+
+Almost always the phone cannot reach the PC. Use the PC LAN IP in `apps/mobile/.env` and make sure backend says it is listening on port 4000.
+
+### Database connection error
+
 Run:
 
-```powershell
-npx expo start --tunnel --clear
+```bash
+docker compose up -d
 ```
 
-Then scan the new QR.
+Then:
 
-## Important
-You do **not** need to log in to Expo just to run this locally in Expo Go.
+```bash
+npm run db:push
+npm run db:seed
+```
 
----
+### Expo package mismatch
 
-# What this build includes
+Run inside `apps/mobile`:
 
-Fully runnable flow:
+```bash
+npx expo-doctor@latest
+npx expo install --fix
+```
 
-Splash
-→ premium onboarding
-→ goals
-→ screen-time/app habit questions
-→ 3-step cognitive focus check
-→ Google-style login
-→ automatic username
-→ plan generation
-→ working app shell + dashboard
+### Want a completely clean demo
 
-Inside the app:
-- Home
-- Detox
-- Train
-- Progress
-- Profile
-- simulated focus-session popup
-- toggles for protection rules
-- local persistence using AsyncStorage
-- reset demo option
+```bash
+npm run db:seed
+```
 
-## Google login in this update
+Then log in again with the demo account.
 
-The button is intentionally **demo Google login** so the project opens immediately with no OAuth keys.
+## Security / production notes
 
-Later replace:
-`src/services/authService.ts`
-
-with:
-
-Google OAuth
-→ NestJS `/auth/google`
-→ JWT
-→ PostgreSQL
-
-The pre-login answers are already saved locally and attached to the generated user object, so the future backend flow is straightforward.
-
-## App blocking
-
-Expo Go cannot perform real operating-system app blocking.
-
-For the current update, the full Detox UX is included and interactive.
-
-Sprint 2:
-React Native
-→ native Android Usage Access / app restriction module
-→ NestJS logging
-→ PostgreSQL
-
-That is the point where the real blocker is connected without throwing away this UI.
+This faculty build stores mobile JWTs in AsyncStorage to keep the Expo 57 dependency set minimal and reproducible. For a production release, move refresh credentials to Expo SecureStore / native secure storage and add rate limiting, email verification, password recovery, structured logging, cloud object storage, monitoring and hardened CORS rules.
