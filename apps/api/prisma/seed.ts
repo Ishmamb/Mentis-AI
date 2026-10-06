@@ -65,6 +65,7 @@ async function main() {
     prisma.game.create({ data: { slug: 'pattern-lab', title: 'Pattern Lab', description: 'A fast pattern-recognition reset.', difficulty: 'Easy', estimatedMinutes: 2, xpReward: 20 } }),
     prisma.game.create({ data: { slug: 'sudoku-sprint', title: 'Sudoku Sprint', description: 'A compact logic challenge with a clean finish.', difficulty: 'Medium', estimatedMinutes: 5, xpReward: 30 } }),
     prisma.game.create({ data: { slug: 'mystery-case', title: 'Murder Mystery', description: 'Inspect clues and make one evidence-based accusation.', difficulty: 'Medium', estimatedMinutes: 7, xpReward: 35 } }),
+    prisma.game.create({ data: { slug: 'mentis-chess', title: 'Mindful Chess', description: 'Tactical mental training against Mindful AI or Pass & Play.', difficulty: 'Medium', estimatedMinutes: 10, xpReward: 50 } }),
   ]);
   await prisma.gameSession.create({ data: { userId: demo.id, gameId: games[0].id, score: 880, durationSec: 92, xpEarned: 20 } });
   await prisma.gameSession.create({ data: { userId: demo.id, gameId: games[1].id, score: 720, durationSec: 264, xpEarned: 30 } });

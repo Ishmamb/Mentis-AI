@@ -9,6 +9,12 @@ Mentis AI is a full-stack digital wellbeing and focus-improvement mobile applica
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
 - [Project Structure](#project-structure)
+- [Interactive Cognitive Training Hub](#interactive-cognitive-training-hub)
+  - [In-App Playable Mindful Chess](#in-app-playable-mindful-chess)
+  - [In-App Playable Sudoku Sprint](#in-app-playable-sudoku-sprint)
+  - [Zen Breathwork & Neuro-Regulation](#zen-breathwork--neuro-regulation)
+  - [Case #104: Midnight Archive Mini-Game](#case-104-midnight-archive-mini-game)
+  - [Mentis AI Copilot Modal](#mentis-ai-copilot-modal)
 - [How the System Works](#how-the-system-works)
   - [Authentication Flow](#authentication-flow)
   - [Mobile ↔ API Communication](#mobile--api-communication)
@@ -109,11 +115,10 @@ mentis-ai-faculty-release/
 │   └── mobile/                  # React Native Expo App
 │       ├── src/
 │       │   ├── screens/         # All app screens (Home, Train, Reflect…)
-│       │   ├── components/      # Reusable UI components
-│       │   ├── navigation/      # React Navigation stack & tab config
-│       │   ├── api/             # Axios API client + typed request helpers
-│       │   ├── context/         # Auth context (JWT token management)
-│       │   └── hooks/           # Custom React hooks
+│       │   ├── components/      # Reusable UI components (ChessGame, SudokuGame, ZenBreathing...)
+│       │   ├── services/        # Logic engines (chessEngine, sudokuService, backend API)
+│       │   ├── storage/         # Local draft profile and cached states
+│       │   └── theme/           # Design tokens, typography & color system
 │       ├── App.tsx              # App entry point + navigation root
 │       └── .env                 # Mobile environment config (API URL)
 ├── docker-compose.yml           # PostgreSQL container definition
@@ -122,6 +127,50 @@ mentis-ai-faculty-release/
 ├── START_BACKEND.bat            # Starts the NestJS API server
 └── START_MOBILE.bat             # Starts the Expo dev server (QR code)
 ```
+
+---
+
+## Interactive Cognitive Training Hub
+
+The app features a dedicated in-app training hub engineered to replace dopamine-driven feed scrolling with deliberate mental exercises:
+
+### In-App Playable Mindful Chess
+- **Playable natively in-app**: No external webviews or third-party redirects.
+- **Dual Play Modes**:
+  - **🤖 Mindful AI Bot**: Play against the AI engine with 3 difficulty tiers (*Novice*, *Tactical*, and *Grandmaster*) using minimax evaluation with alpha-beta pruning and center-development piece tables.
+  - **👥 2-Player Pass & Play**: Play locally on the same device screen.
+- **Full Chess Engine**:
+  - Complete move validation for Pawns (double moves, diagonal captures, auto-promotion to Queen), Knights, Bishops, Rooks, Queens, and Kings.
+  - Checkmate, Stalemate, and King threat glow detection.
+  - Captured piece trays showing material score differences (`+3`, `+5`).
+  - Move history notation, clock timer, undo move capability.
+  - Wins and completed games award **+50 XP** directly saved to PostgreSQL via the backend `completeGame` endpoint.
+
+### In-App Playable Sudoku Sprint
+- **Playable natively in-app**:
+  - **Free API Connect**: Connects to the public Dosuku Sudoku API (`https://sudoku-api.vercel.app/api/dosuku`) with real-time connection status (`API Connected 🟢`).
+  - **Zero-Latency Offline Fallback**: Features an instant local algorithmic puzzle generator and permuter, guaranteeing 100% playable puzzles even when completely offline.
+- **Rich Gameplay Controls**:
+  - 4 difficulty levels: *Easy*, *Medium*, *Hard*, and *Expert*.
+  - **Same-number highlights**: Tapping any number highlights all matching numbers on the 9x9 board.
+  - **Pencil/Notes mode**: Candidate numbers note-taking in empty cells.
+  - **Smart hints**: Recommends the next single-candidate cell.
+  - **Conflict detection**: Real-time row, column, and 3x3 box duplicate detection.
+  - **Mistake counter**: 3-strike mode and game timer.
+  - Completing a puzzle awards **+30 XP** saved to the backend.
+
+### Zen Breathwork & Neuro-Regulation
+- Interactive animated breathing orb with fluid scaling transitions and haptic cues.
+- **4-4-4-4 Box Breathing**: Regulates the nervous system during intense scrolling urges.
+- **4-7-8 Deep Relaxation**: Helps users disconnect and calm mental chatter before sleep.
+
+### Case #104: Midnight Archive Mini-Game
+- Deductive reasoning challenge integrated with the seeded `mystery-case` content.
+- Inspect physical evidence, review suspect alibis, catch weather timeline contradictions, and accuse the culprit to earn **+35 XP**.
+
+### Mentis AI Copilot Modal
+- Direct attention guide accessible from the header and home launchpad.
+- Provides interactive advice for urge surfing, nighttime scroll blockers, and flow-state study formulas.
 
 ---
 
