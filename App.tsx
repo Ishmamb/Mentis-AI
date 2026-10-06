@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { IntroScreen } from './src/screens/IntroScreen';
@@ -11,12 +11,23 @@ import { GeneratingScreen } from './src/screens/GeneratingScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
 import { MainAppScreen } from './src/screens/MainAppScreen';
 import { AppScreen, DraftProfile, MentisUser, StarterPlan } from './src/types';
-import { emptyDraft, loadDraft, loadPlan, loadUser, resetMentis, saveDraft, savePlan, saveUser } from './src/storage';
-import { generateStarterPlan } from './src/services/planService';
+import { emptyDraft, resetMentis, saveDraft } from './src/storage';
+import { getOnboarding, logout, me } from './src/services/backend';
+import { hasSession } from './src/services/api';
 import { C } from './src/theme';
+
+const DEFAULT_EXISTING_USER_PREDATA: DraftProfile = {
+  goals: ['Improve focus', 'Reduce scrolling'],
+  screenTime: '4–6h',
+  apps: ['Instagram', 'YouTube'],
+  assessmentCorrect: 3,
+  focusIndex: 78,
+  cognitiveAge: 20,
+};
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
+  // Always refresh/reset pre-login draft info on every run!
   const [draft, setDraftState] = useState<DraftProfile>(emptyDraft);
   const [user, setUserState] = useState<MentisUser | null>(null);
   const [plan, setPlanState] = useState<StarterPlan | null>(null);
@@ -25,11 +36,19 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const [d, u, p] = await Promise.all([loadDraft(), loadUser(), loadPlan()]);
-      setDraftState(d);
-      setUserState(u);
-      setPlanState(p);
-      if (u && p) setScreen('main');
+      // Clear any previous stale draft so each run starts completely refreshed
+      setDraftState(emptyDraft);
+      await resetMentis();
+
+      if (await hasSession()) {
+        try {
+          const [savedUser, onboarding] = await Promise.all([me(), getOnboarding()]);
+          setUserState(savedUser);
+          setPlanState(onboarding.plan);
+        } catch {
+          await logout();
+        }
+      }
       setHydrated(true);
     })();
   }, []);
@@ -46,41 +65,64 @@ export default function App() {
     await saveDraft(next);
   };
 
-  const onUser = async (nextUser: MentisUser) => {
-    setUserState(nextUser);
-    await saveUser(nextUser);
-    go('generating');
+  const jumpToLoginDirectly = async () => {
+    // Assume pre-data for existing user
+    await setDraft(DEFAULT_EXISTING_USER_PREDATA);
+    go('login');
+  };
 
-    const nextPlan = await generateStarterPlan(nextUser.draft);
+  const onAuthenticated = async (nextUser: MentisUser, nextPlan: StarterPlan) => {
+    setUserState(nextUser);
     setPlanState(nextPlan);
-    await savePlan(nextPlan);
-    go('plan');
+    go('generating');
+    setTimeout(() => go('plan'), 800);
   };
 
   const reset = async () => {
-    await resetMentis();
+    await Promise.all([logout(), resetMentis()]);
     setDraftState(emptyDraft);
     setUserState(null);
     setPlanState(null);
     go('intro');
   };
 
-  if (!hydrated && screen !== 'splash') return <View style={{ flex: 1, backgroundColor: C.bg }} />;
+  if (!hydrated) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
 
   let content: React.ReactNode;
-
   if (screen === 'splash') {
     content = <SplashScreen onDone={() => go(user && plan ? 'main' : 'intro')} />;
   } else if (screen === 'intro') {
-    content = <IntroScreen onNext={() => go('goals')} />;
+    content = (
+      <IntroScreen
+        onNext={() => {
+          setDraftState(emptyDraft);
+          go('goals');
+        }}
+        onJumpToLogin={jumpToLoginDirectly}
+      />
+    );
   } else if (screen === 'goals') {
     content = <GoalsScreen draft={draft} setDraft={setDraft} onNext={() => go('habits')} />;
   } else if (screen === 'habits') {
     content = <HabitsScreen draft={draft} setDraft={setDraft} onNext={() => go('assessment')} />;
   } else if (screen === 'assessment') {
-    content = <AssessmentScreen draft={draft} finish={async next => { await setDraft(next); go('login'); }} />;
+    content = (
+      <AssessmentScreen
+        draft={draft}
+        finish={async next => {
+          await setDraft(next);
+          go('login');
+        }}
+      />
+    );
   } else if (screen === 'login') {
-    content = <LoginScreen draft={draft} onUser={onUser} />;
+    content = (
+      <LoginScreen
+        draft={draft}
+        onAuthenticated={onAuthenticated}
+        onBack={() => go('intro')}
+      />
+    );
   } else if (screen === 'generating') {
     content = <GeneratingScreen />;
   } else if (screen === 'plan' && user && plan) {
@@ -88,17 +130,21 @@ export default function App() {
   } else if (screen === 'main' && user && plan) {
     content = <MainAppScreen user={user} plan={plan} onReset={reset} />;
   } else {
-    content = <IntroScreen onNext={() => go('goals')} />;
+    content = (
+      <IntroScreen
+        onNext={() => {
+          setDraftState(emptyDraft);
+          go('goals');
+        }}
+        onJumpToLogin={jumpToLoginDirectly}
+      />
+    );
   }
 
   return (
-    <View style={styles.root}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style="dark" />
-      <Animated.View style={[styles.root, { opacity: fade }]}>{content}</Animated.View>
+      <Animated.View style={{ flex: 1, opacity: fade }}>{content}</Animated.View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-});

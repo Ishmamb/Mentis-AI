@@ -1,11 +1,18 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Brand } from '../components/Brand';
 import { Button } from '../components/Button';
 import { Screen } from '../components/Screen';
 import { C, R } from '../theme';
 
-export function IntroScreen({ onNext }: { onNext: () => void }) {
+export function IntroScreen({
+  onNext,
+  onJumpToLogin,
+}: {
+  onNext: () => void;
+  onJumpToLogin?: () => void;
+}) {
   const y = useRef(new Animated.Value(18)).current;
   const a = useRef(new Animated.Value(0)).current;
 
@@ -30,18 +37,43 @@ export function IntroScreen({ onNext }: { onNext: () => void }) {
         <View style={styles.preview}>
           <View style={styles.previewTop}>
             <Text style={styles.previewLabel}>TODAY</Text>
-            <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>ready</Text></View>
+            <View style={styles.livePill}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>ready</Text>
+            </View>
           </View>
           <Text style={styles.previewTitle}>Your first reset can take 10 minutes.</Text>
           <View style={styles.row}>
-            <View style={styles.mini}><Text style={styles.miniBig}>2</Text><Text style={styles.miniText}>brain challenges</Text></View>
-            <View style={styles.mini}><Text style={styles.miniBig}>1</Text><Text style={styles.miniText}>focus block</Text></View>
+            <View style={styles.mini}>
+              <Text style={styles.miniBig}>2</Text>
+              <Text style={styles.miniText}>brain challenges</Text>
+            </View>
+            <View style={styles.mini}>
+              <Text style={styles.miniBig}>1</Text>
+              <Text style={styles.miniText}>focus block</Text>
+            </View>
           </View>
         </View>
       </Animated.View>
 
       <View style={{ flex: 1 }} />
       <Button title="Build my plan" onPress={onNext} />
+
+      {onJumpToLogin && (
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+            onJumpToLogin();
+          }}
+          style={styles.loginLink}
+        >
+          <Text style={styles.loginLinkText}>
+            Already have an account?{' '}
+            <Text style={styles.loginLinkHighlight}>Log in directly →</Text>
+          </Text>
+        </Pressable>
+      )}
+
       <Text style={styles.note}>About 60 seconds. No account needed yet.</Text>
     </Screen>
   );
@@ -64,5 +96,19 @@ const styles = StyleSheet.create({
   mini: { flex: 1, backgroundColor: C.bg, borderRadius: R.md, padding: 14 },
   miniBig: { color: C.ink, fontSize: 22, fontWeight: '900' },
   miniText: { color: C.muted, fontSize: 11, fontWeight: '700', marginTop: 4 },
-  note: { textAlign: 'center', color: C.muted, fontSize: 12, marginTop: 13 },
+  loginLink: {
+    alignSelf: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  loginLinkText: {
+    color: C.muted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  loginLinkHighlight: {
+    color: C.primary,
+    fontWeight: '800',
+  },
+  note: { textAlign: 'center', color: C.muted, fontSize: 12, marginTop: 4 },
 });

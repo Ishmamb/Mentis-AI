@@ -13,35 +13,74 @@ export async function saveTokens(accessToken: string, refreshToken: string) {
 export async function clearTokens() {
   await AsyncStorage.multiRemove([ACCESS, REFRESH]);
 }
-export async function hasSession() { return Boolean(await AsyncStorage.getItem(ACCESS)); }
-
-async function refreshAccess() {
-  const refreshToken = await AsyncStorage.getItem(REFRESH);
-  if (!refreshToken) return null;
-  const res = await fetch(`${API_URL}/auth/refresh`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken }),
-  });
-  if (!res.ok) { await clearTokens(); return null; }
-  const data = await res.json();
-  await saveTokens(data.accessToken, data.refreshToken);
-  return data.accessToken as string;
+export async function hasSession() {
+  return Boolean(await AsyncStorage.getItem(ACCESS));
 }
 
-export async function api<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
-  const token = await AsyncStorage.getItem(ACCESS);
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  let res = await fetch(`${API_URL}${path}`, { ...init, headers });
-  if (res.status === 401 && retry) {
-    const next = await refreshAccess();
-    if (next) {
-      headers.Authorization = `Bearer ${next}`;
-      res = await fetch(`${API_URL}${path}`, { ...init, headers });
+async function refreshAccess(): Promise<string | null> {
+  const refreshToken = await AsyncStorage.getItem(REFRESH);
+  if (!refreshToken) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3500);
+  try {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      await clearTokens();
+      return null;
     }
+    const data = await res.json();
+    await saveTokens(data.accessToken, data.refreshToken);
+    return data.accessToken as string;
+  } catch {
+    clearTimeout(timer);
+    return null;
   }
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body?.message || `Request failed (${res.status})`);
-  return body as T;
+}
+
+export async function api<T>(
+  path: string,
+  init: RequestInit = {},
+  retry = true,
+  timeoutMs = 3500
+): Promise<T> {
+  const token = await AsyncStorage.getItem(ACCESS);
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((init.headers as Record<string, string>) || {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    let res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (res.status === 401 && retry) {
+      const next = await refreshAccess();
+      if (next) {
+        headers.Authorization = `Bearer ${next}`;
+        res = await fetch(`${API_URL}${path}`, { ...init, headers });
+      }
+    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.message || `Request failed (${res.status})`);
+    return body as T;
+  } catch (err: any) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 export function assetUrl(path: string) {
